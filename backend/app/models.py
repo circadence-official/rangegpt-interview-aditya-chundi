@@ -9,7 +9,7 @@ class Provider(models.Model):
     class Meta:
         ordering = ["name"]
 
-    def __str__(self):
+    def _str_(self):
         return self.name
 
 
@@ -32,5 +32,42 @@ class LLMModel(models.Model):
         ordering = ["-arena_elo_score"]
         unique_together = ["provider", "name"]
 
-    def __str__(self):
+    def _str_(self):
         return f"{self.provider.name} - {self.name}"
+
+
+
+# Model to store benchmark evaluation results for each LLM
+# Design choice:
+  # Each result is stored as a separate row (no updates/overwrites)
+  # This allows tracking performance history over time
+  # Supports multiple benchmarks dynamically without schema changes
+
+
+class BenchmarkResult(models.Model):
+    model = models.ForeignKey(
+        LLMModel,
+        on_delete=models.CASCADE,
+        related_name="benchmark_results"
+    )
+
+    # Name of the benchmark (e.g., arena_elo, mmlu, etc.)
+    # Kept as a flexible string so new benchmarks can be added without schema change
+    
+    benchmark = models.CharField(max_length=100)
+
+    # Score achieved in that benchmark run
+
+    score = models.FloatField()
+    run_id = models.CharField(max_length=100, blank=True, null=True)
+
+    # Timestamp when this result was recorded
+    # Used to track history and determine the most recent run
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def _str_(self):
+        return f"{self.model.name} - {self.benchmark} - {self.score}"
